@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Daftar Fingerprint</title>
+</head>
+<body>
+
+<h3>Daftarkan Fingerprint SADUD</h3>
+<button onclick="register()">Daftar Sekarang</button>
+
+<script>
+async function register() {
+  const res = await fetch("/register/begin");
+  const options = await res.json();
+
+  options.user.id = Uint8Array.from(atob(options.user.id), c => c.charCodeAt(0));
+
+  const cred = await navigator.credentials.create({ publicKey: options });
+
+  const data = {
+    id: cred.id,
+    rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))),
+    response: {
+      attestationObject: btoa(String.fromCharCode(...new Uint8Array(cred.response.attestationObject))),
+      clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON)))
+    },
+    type: cred.type
+  };
+
+  await fetch("/register/complete", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(data)
+  });
+
+  alert("Fingerprint berhasil didaftarkan");
+}
+</script>
+
+</body>
+</html>
