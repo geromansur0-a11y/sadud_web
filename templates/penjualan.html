@@ -1,0 +1,10 @@
+<h3>Penjualan</h3>
+<form method="post">
+<select name="barang">
+{% for b in barang %}
+<option value="{{ b[0] }}">{{ b[1] }}</option>
+{% endfor %}
+</select>
+<input name="qty" placeholder="Jumlah">
+<button>Proses</button>
+</form>
