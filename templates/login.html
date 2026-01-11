@@ -1,41 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Login SADUD</title>
+<style>
+body { font-family: Arial; padding: 20px; }
+input,button { width:100%; padding:10px; margin:5px 0; }
+button { background:#0d47a1; color:white; border:none; }
+</style>
 </head>
 <body>
-
-<h3>Login SADUD</h3>
-<button onclick="loginFinger()">Login Fingerprint / Face ID</button>
-
-<script>
-async function loginFinger() {
-  const res = await fetch("/login/finger/begin");
-  const options = await res.json();
-
-  const cred = await navigator.credentials.get({ publicKey: options });
-
-  const data = {
-    id: cred.id,
-    rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))),
-    response: {
-      authenticatorData: btoa(String.fromCharCode(...new Uint8Array(cred.response.authenticatorData))),
-      clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))),
-      signature: btoa(String.fromCharCode(...new Uint8Array(cred.response.signature))),
-      userHandle: null
-    },
-    type: cred.type
-  };
-
-  const r = await fetch("/login/finger/complete", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify(data)
-  });
-
-  if ((await r.json()).success) location.href="/dashboard";
-}
-</script>
-
+<h2>Login SADUD</h2>
+<form method="post">
+<input name="username" placeholder="Username">
+<input name="password" type="password" placeholder="Password">
+<button>Login</button>
+</form>
 </body>
 </html>
