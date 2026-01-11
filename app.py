@@ -62,6 +62,22 @@ def laporan():
     jual = c.execute("SELECT SUM(total) FROM penjualan").fetchone()[0] or 0
     return render_template("laporan.html", total=jual)
 
+@app.route("/api/grafik")
+def api_grafik():
+    c = db().cursor()
+    data = c.execute("""
+        SELECT tanggal, SUM(total)
+        FROM penjualan
+        GROUP BY tanggal
+        ORDER BY tanggal
+    """).fetchall()
+
+    return {
+        "tanggal": [d[0] for d in data],
+        "total": [d[1] for d in data]
+    }
+
+
 @app.route("/logout")
 def logout():
     session.clear()
