@@ -19,6 +19,12 @@ def login():
             return redirect("/dashboard")
     return render_template("login.html")
 
+@app.route("/finger-login")
+def finger_login():
+    session["login"] = True
+    return {"success": True}
+
+
 @app.route("/dashboard")
 def dashboard():
     if not session.get("login"):
