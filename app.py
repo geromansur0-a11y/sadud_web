@@ -1,92 +1,64 @@
-from flask import Flask, render_template, request, redirect, session
-import sqlite3
+from flask import Flask, render_template, request, session, redirect, jsonify
+from webauthn import server, credentials
+import os
 
 app = Flask(__name__)
-app.secret_key = "sadud_secret"
+app.secret_key = "sadud-secret"
 
-def db():
-    return sqlite3.connect("sadud.db")
+@app.route("/register")
+def register():
+    return render_template("register_finger.html")
 
-@app.route("/", methods=["GET","POST"])
-def login():
-    if request.method == "POST":
-        u = request.form["username"]
-        p = request.form["password"]
-        c = db().cursor()
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (u,p))
-        if c.fetchone():
-            session["login"] = True
-            return redirect("/dashboard")
-    return render_template("login.html")
+@app.route("/register/begin")
+def register_begin():
+    user = {
+        "id": os.urandom(16),
+        "name": "admin",
+        "displayName": "Admin SADUD"
+    }
+    registration_data, state = server.register_begin(
+        user,
+        credentials.get("admin", []),
+        user_verification="required"
+    )
+    session["state"] = state
+    return jsonify(registration_data)
 
-@app.route("/finger-login")
-def finger_login():
+@app.route("/register/complete", methods=["POST"])
+def register_complete():
+    data = request.get_json()
+    auth_data = server.register_complete(
+        session["state"],
+        data
+    )
+    credentials.setdefault("admin", []).append(auth_data.credential_data)
+    return {"success": True}
+
+@app.route("/login/finger/begin")
+def login_begin():
+    auth_data, state = server.authenticate_begin(
+        credentials.get("admin", [])
+    )
+    session["state"] = state
+    return jsonify(auth_data)
+
+@app.route("/login/finger/complete", methods=["POST"])
+def login_complete():
+    data = request.get_json()
+    server.authenticate_complete(
+        session["state"],
+        credentials.get("admin", []),
+        data
+    )
     session["login"] = True
     return {"success": True}
 
+@app.route("/")
+def login():
+    return render_template("login.html")
 
 @app.route("/dashboard")
 def dashboard():
     if not session.get("login"):
         return redirect("/")
-    c = db().cursor()
-    barang = c.execute("SELECT * FROM barang").fetchall()
-    return render_template("dashboard.html", data=barang)
-
-@app.route("/barang", methods=["GET","POST"])
-def barang():
-    if request.method == "POST":
-        db().cursor().execute(
-            "INSERT INTO barang(nama,harga,stok) VALUES (?,?,?)",
-            (request.form["nama"], request.form["harga"], request.form["stok"])
-        )
-        db().commit()
-    data = db().cursor().execute("SELECT * FROM barang").fetchall()
-    return render_template("barang.html", data=data)
-
-@app.route("/penjualan", methods=["GET","POST"])
-def penjualan():
-    c = db().cursor()
-    barang = c.execute("SELECT * FROM barang").fetchall()
-
-    if request.method == "POST":
-        idb = request.form["barang"]
-        qty = int(request.form["qty"])
-        b = c.execute("SELECT harga FROM barang WHERE id=?", (idb,)).fetchone()
-        total = qty * b[0]
-
-        c.execute("INSERT INTO penjualan(barang_id,qty,total,tanggal) VALUES (?,?,?,date('now'))",
-                  (idb,qty,total))
-        c.execute("UPDATE barang SET stok=stok-? WHERE id=?", (qty,idb))
-        db().commit()
-
-    return render_template("penjualan.html", barang=barang)
-
-@app.route("/laporan")
-def laporan():
-    c = db().cursor()
-    jual = c.execute("SELECT SUM(total) FROM penjualan").fetchone()[0] or 0
-    return render_template("laporan.html", total=jual)
-
-@app.route("/api/grafik")
-def api_grafik():
-    c = db().cursor()
-    data = c.execute("""
-        SELECT tanggal, SUM(total)
-        FROM penjualan
-        GROUP BY tanggal
-        ORDER BY tanggal
-    """).fetchall()
-
-    return {
-        "tanggal": [d[0] for d in data],
-        "total": [d[1] for d in data]
-    }
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
-
-app.run(host="0.0.0.0", port=5000, debug=True)
+    return "LOGIN BERHASIL (Fingerprint)"
