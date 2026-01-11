@@ -1,0 +1,13 @@
+<h3>Data Barang</h3>
+<form method="post">
+<input name="nama" placeholder="Nama Barang">
+<input name="harga" placeholder="Harga">
+<input name="stok" placeholder="Stok">
+<button>Simpan</button>
+</form>
+
+<ul>
+{% for b in data %}
+<li>{{ b[1] }} | Stok: {{ b[3] }}</li>
+{% endfor %}
+</ul>
